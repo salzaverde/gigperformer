@@ -1,14 +1,14 @@
-//Called when a CC message is received
-//The CC numbers must be within the specified range
-
-// Configuration
-var controlCC("CC number"): Subrange Parameter 0..127 = 11
-var lowerThreshold("Lower threshold CC value"): Subrange Parameter 0..63 = 20
-var upperThreshold("Upper threshold CC value"): Subrange Parameter 64..127 = 107
-var delayBeforeScrolling("Delay before scroll starts"): Subrange Parameter 1..8 = 2
-var scrollSpeed("Scrolling Speed"): Subrange Parameter 1..10 = 2
+// Setlist Navigation
+// Navigate the setlist through CC commands
 
 // Variables & Initialization
+const controlCC: Integer = 11
+
+var lowerThreshold: Integer = 56
+var upperThreshold: Integer = 72
+var delayBeforeScrolling: Integer = 2
+var scrollSpeed: Integer = 6
+
 var previousPressed: Boolean = false
 var previousHandled: Boolean = false
 var nextPressed: Boolean = false
@@ -36,7 +36,7 @@ End
 
 Function handleScrolling(currentTime: double)
     var delayBeforeScrollingInMs: double = delayBeforeScrolling * 500
-    var delayBetweenScrolls: double = 200 / scrollSpeed 
+    var delayBetweenScrolls: double = 1000 / scrollSpeed 
     
     var nextScrollTime: double = lastScrollTime + delayBetweenScrolls
     var canScroll: Boolean = currentTime > nextScrollTime
@@ -77,31 +77,27 @@ Function reset()
 End
 
 // Logic
-On ControlChangeEvent(m : ControlChangeMessage)
-    var incomingCC: Integer = GetCCNumber(m)
+On ControlChangeEvent(m : ControlChangeMessage) Matching controlCC
     var value: Integer = GetCCValue(m)
+    Select
+        value > upperThreshold Do
+            setNextPressed(true)
+        value < lowerThreshold Do
+            setPreviousPressed(true)
+        true Do
+            reset()
+    End
     
-    If incomingCC == controlCC Then
-        Select
-            value > upperThreshold Do
-                setNextPressed(true)
-            value < lowerThreshold Do
-                setPreviousPressed(true)
-            true Do
-                reset()
-        End
-        
-        Select
-            !nextHandled && nextPressed Do
-                handleNext()
-                startAction()
-            !previousHandled && previousPressed Do
-                handlePrevious()
-                startAction()
-            !nextPressed && !previousPressed Do
-                nextHandled = false
-                previousHandled = false
-        End
+    Select
+        !nextHandled && nextPressed Do
+            handleNext()
+            startAction()
+        !previousHandled && previousPressed Do
+            handlePrevious()
+            startAction()
+        !nextPressed && !previousPressed Do
+            nextHandled = false
+            previousHandled = false
     End
 End
 
