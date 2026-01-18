@@ -1,0 +1,114 @@
+//Called when a CC message is received
+//The CC numbers must be within the specified range
+
+// Configuration
+var controlCC("CC number"): Subrange Parameter 0..127 = 11
+var lowerThreshold("Lower threshold CC value"): Subrange Parameter 0..63 = 20
+var upperThreshold("Upper threshold CC value"): Subrange Parameter 64..127 = 107
+var delayBeforeScrolling("Delay before scroll starts"): Subrange Parameter 1..8 = 2
+var scrollSpeed("Scrolling Speed"): Subrange Parameter 1..10 = 2
+
+// Variables & Initialization
+var previousPressed: Boolean = false
+var previousHandled: Boolean = false
+var nextPressed: Boolean = false
+var nextHandled: Boolean = false
+
+var actionStarted: Boolean = false
+var actionStartedAt: double = 0
+var actionRunningForMilliseconds: double = 0
+var lastScrollTime: double = 0
+
+Initialization
+    SetTimersRunning(true)
+End
+
+// Functions
+Function handleNext()
+    SongMoveDown()
+    nextHandled = true
+End
+
+Function handlePrevious()
+    SongMoveUp()
+    previousHandled = true
+End
+
+Function handleScrolling(currentTime: double)
+    var delayBeforeScrollingInMs: double = delayBeforeScrolling * 500
+    var delayBetweenScrolls: double = 200 / scrollSpeed 
+    
+    var nextScrollTime: double = lastScrollTime + delayBetweenScrolls
+    var canScroll: Boolean = currentTime > nextScrollTime
+    
+    If canScroll And actionRunningForMilliseconds > delayBeforeScrollingInMs Then
+        select
+            nextPressed Do
+                handleNext()
+            previousPressed Do
+                handlePrevious()
+        End
+            
+        lastScrollTime = currentTime
+    End
+End
+
+Function setNextPressed(pressed: Boolean)
+    nextPressed = pressed
+End
+
+Function setPreviousPressed(pressed: Boolean)
+    previousPressed = pressed
+End
+
+Function startAction()
+    actionStarted = true
+    actionStartedAt = ClockTime()
+    Print("Action started at " + actionStartedAt)
+End
+
+Function reset()
+    nextPressed = false
+    previousPressed = false
+    actionStarted = false
+    actionStartedAt = 0
+    actionRunningForMilliseconds = 0
+    lastScrollTime = 0
+End
+
+// Logic
+On ControlChangeEvent(m : ControlChangeMessage)
+    var incomingCC: Integer = GetCCNumber(m)
+    var value: Integer = GetCCValue(m)
+    
+    If incomingCC == controlCC Then
+        Select
+            value > upperThreshold Do
+                setNextPressed(true)
+            value < lowerThreshold Do
+                setPreviousPressed(true)
+            true Do
+                reset()
+        End
+        
+        Select
+            !nextHandled && nextPressed Do
+                handleNext()
+                startAction()
+            !previousHandled && previousPressed Do
+                handlePrevious()
+                startAction()
+            !nextPressed && !previousPressed Do
+                nextHandled = false
+                previousHandled = false
+        End
+    End
+End
+
+On TimerTick(milliseconds : double)
+    var currentTime: double = ClockTime()
+    If actionStarted Then
+        actionRunningForMilliseconds = currentTime - actionStartedAt
+        handleScrolling(currentTime)
+    End
+End

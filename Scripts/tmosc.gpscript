@@ -1,0 +1,46 @@
+const InputChannelType: Integer = 0
+const PlaybackChannelType: Integer = 1
+
+// Variables
+var currentChannelType: Integer = InputChannelType
+
+// Functions
+Function setChannelType(channelType: Integer)
+    If currentChannelType != channelType Then
+        Select
+            channelType == InputChannelType Do
+                OSC_SendDouble("/1/busInput", 1.0)
+            channelType == PlaybackChannelType Do
+                OSC_SendDouble("/1/busPlayback", 1.0)
+        End
+        currentChannelType = channelType
+    End
+End
+
+// API
+Function setChannelLevel(outputChannelIndex: Integer, inputChannelIndex: Integer, channelType: Integer, level: Double)
+    OSC_SendDouble("/setSubmix", outputChannelIndex)
+    setChannelType(channelType)
+    OSC_SendDouble("/1/volume" + (inputChannelIndex + 1), level)
+End
+
+Function setBusLevel(outputChannelIndex: Integer, level: Double)
+// TBD
+End
+
+Initialization
+    setChannelType(InputChannelType)
+End
+
+// Log Rx
+On OSCMessageReceived(message : OSCMessage) Matching "/1/busInput"
+    If OSC_GetArgAsDouble(message, 0) == 1.0 Then
+        currentChannelType = InputChannelType
+    End
+End
+
+On OSCMessageReceived(message : OSCMessage) Matching "/1/busPlayback"
+    If OSC_GetArgAsDouble(message, 0) == 1.0 Then
+        currentChannelType = PlaybackChannelType
+    End
+End

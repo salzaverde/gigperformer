@@ -1,0 +1,196 @@
+// Description
+// Script to enable the routing of input channels to output channels in TotalMix, 
+// where specific input/output channel pairs can be used as inserts
+
+Include "utils"
+
+// Configuration
+// Define input and output channels, adding insert channels at the end
+// Naturally, the number of insert outputs and inputs must be the same
+var inputChannels: String Array = ["Rev2", "Pro3", "Kontakt", "Delay In", "Reverb In"]
+var outputChannels: String Array = ["Bass Bus", "Sequence Bus", "Keys Bus", "Delay Out", "Reverb Out"]
+var insertInStartIndex: Integer = 3
+var insertOutStartIndex: Integer = 3
+
+// Variables
+var numInputs: Integer
+var numBuses: Integer
+var numInserts: Integer
+
+var busRoutes: Boolean Array = [] // Non-insert routes, length: non-insert outputs * non-insert inputs
+var busInserts: Boolean Array = [] // Bus Inserts, length: insert outputs * insert inputs
+var channelRoutes: Boolean Array = [] // How input channels route to output channels
+
+
+// Widgets
+var audio00, audio01, audio02, audio10, audio11, audio12, audio20, audio21, audio22: Widget // Bus routing matrix
+var insert00, insert01, insert02, insert10, insert11, insert12: Widget // FX insert matrix
+
+var busMatrixWidgets: Widget Array = [audio00, audio01, audio02, audio10, audio11, audio12, audio20, audio21, audio22]
+var insertMatrixWidgets: Widget Array = [insert00, insert01, insert02, insert10, insert11, insert12]
+
+// Functions
+Function isBus(outputChannel: Integer) Returns Boolean
+    result = outputChannel < insertOutStartIndex
+End
+
+Function isInsert(outputChannel: Integer) Returns Boolean
+    result = outputChannel >= insertOutStartIndex
+End
+
+Function hasInsert(outputChannel: Integer, insertIndex: Integer) Returns Boolean
+    var routeIndex: Integer = toMapIndex(insertIndex, outputChannel, numBuses)
+    result = busInserts[routeIndex]
+End
+
+Function getInsertBusIndex(insertIndex: Integer) Returns Integer
+    var busIndex: Integer
+    result = -1
+
+    If insertIndex >= 0 Then
+        For busIndex = 0; busIndex < numBuses; busIndex = busIndex + 1 Do
+            If hasInsert(busIndex, insertIndex) Then
+                result = busIndex
+            End
+        End
+    End
+End
+
+Function getBusInputs(bus: Integer) Returns Integer Array
+    var inputs: Integer Array = []
+    var inputIndex: Integer
+    var routeIndex: Integer
+
+    For inputIndex = 0; inputIndex < numInputs; inputIndex = inputIndex + 1 Do
+        routeIndex = toMapIndex(inputIndex, bus, numBuses)
+        If busRoutes[routeIndex] Then
+            inputs <-- inputIndex
+        End
+    End
+
+    result = inputs
+End
+
+Function getInserts(outputChannel: Integer) Returns Integer Array
+    var inserts: Integer Array = []
+    var insertIndex: Integer
+    For insertIndex = 0; insertIndex < numInserts; insertIndex = insertIndex + 1 Do
+        If hasInsert(outputChannel, insertIndex) Then
+            inserts <-- insertIndex
+        End
+    End
+    result = inserts
+End
+
+Function routeChannel(inputChannel: Integer, outputChannel: Integer)
+    var routeIndex: Integer = toMapIndex(outputChannel, inputChannel, Size(inputChannels))
+    channelRoutes[routeIndex] = true
+End
+
+Function updateBusRoutes()
+    var i: Integer
+    var value: Double
+    For i = 0; i < Size(busMatrixWidgets); i = i + 1 Do
+        value = GetWidgetValue(busMatrixWidgets[i])
+        busRoutes[i] = value > 0.5
+    End
+End
+
+Function updateBusInserts()
+    var i: Integer
+    var value: Double
+    For i = 0; i < Size(insertMatrixWidgets); i = i + 1 Do
+        value = GetWidgetValue(insertMatrixWidgets[i])
+        busInserts[i] = value > 0.5
+    End
+End
+
+Function resetChannelRoutes()
+    var i: Integer
+    For i = 0; i < Size(channelRoutes); i = i + 1 Do
+        channelRoutes[i] = false
+    End
+End
+
+Function routeBusChannel(outputChannel: Integer)
+    var insertInputChannel: Integer
+    var busInputs: Integer Array
+    var busInputIndex: Integer
+
+    var busInserts: Integer Array
+    var lastBusInsert: Integer
+
+    busInserts = getInserts(outputChannel)
+    If Size(busInserts) > 0 Then
+        lastBusInsert = busInserts[Size(busInserts) - 1]
+        insertInputChannel = insertInStartIndex + lastBusInsert
+        routeChannel(insertInputChannel, outputChannel)
+    Else
+        busInputs = getBusInputs(outputChannel)
+        For busInputIndex = 0; busInputIndex < Size(busInputs); busInputIndex = busInputIndex + 1 Do
+            routeChannel(busInputs[busInputIndex], outputChannel)
+        End
+    End
+End
+
+Function routeInsertChannel(outputChannel: Integer)
+    var insertOutIndex: Integer
+    var bus: Integer
+    var busInputs: Integer Array
+    var busInputIndex: Integer
+    var upstreamInsertIndex: Integer
+    var upstreamInsertChannel: Integer
+    
+    insertOutIndex = outputChannel - insertInStartIndex
+    bus = getInsertBusIndex(insertOutIndex)
+    If bus != -1 Then
+        upstreamInsertIndex = insertOutIndex - 1
+        If getInsertBusIndex(upstreamInsertIndex) == bus Then
+            upstreamInsertChannel = insertInStartIndex + upstreamInsertIndex
+            routeChannel(upstreamInsertChannel, outputChannel)
+        Else
+            busInputs = getBusInputs(bus)
+            For busInputIndex = 0; busInputIndex < Size(busInputs); busInputIndex = busInputIndex + 1 Do
+                routeChannel(busInputs[busInputIndex], outputChannel)
+            End
+        End
+    End
+End
+
+Function buildChannelRoutes()
+    var outputChannel: Integer
+
+    resetChannelRoutes()
+
+    For outputChannel = 0; outputChannel < Size(outputChannels); outputChannel = outputChannel + 1 Do
+        If isBus(outputChannel) Then
+            routeBusChannel(outputChannel)
+        Elsif isInsert(outputChannel) Then
+            routeInsertChannel(outputChannel)
+        End
+    End
+End
+
+// Initialization
+Initialization
+    var i, j: Integer
+    
+    numBuses = insertOutStartIndex
+    numInserts = Size(outputChannels) - insertOutStartIndex
+    numInputs = Size(inputChannels) - numInserts
+
+    // Ensure bus and insert routes correspond to widgets
+    For i = 0; i < Size(busMatrixWidgets); i = i + 1 Do
+        busRoutes <-- false
+    End
+    For i = 0; i < Size(insertMatrixWidgets); i = i + 1 Do
+        busInserts <-- false
+    End
+
+    // Initialize channel routes
+    For i = 0; i < Size(outputChannels); i = i + 1 Do
+        For j = 0; j < Size(inputChannels); j = j + 1 Do
+            channelRoutes <-- false
+        End
+    End
+End

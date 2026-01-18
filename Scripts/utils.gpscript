@@ -1,0 +1,3 @@
+Function toMapIndex(rowIndex: Integer, columnIndex: Integer, numColumns: Integer) Returns Integer
+    result = rowIndex * numColumns + columnIndex
+End

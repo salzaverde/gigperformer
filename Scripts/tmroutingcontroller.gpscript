@@ -1,0 +1,71 @@
+Include "routing"
+Include "tmosc"
+
+// Configuration
+// PlaybackChannels are used for virtual instruments
+// InputChannels are used for audio inputs
+var tmChannelTypes: Integer Array = [InputChannelType, InputChannelType, PlaybackChannelType, InputChannelType, InputChannelType]
+
+// Which TotalMix channel index the channels should be mapped to (indices can repeat if they are of different types)
+var tmInputChannelIndices: Integer Array = [5, 4, 1, 0, 1]
+
+// Outputchannels are set using setSubmix, where the value corresponds to single channels (e.g. first channel of stereo pair)
+var tmOutputChannelIndices: Integer Array = [1, 3, 5, 7, 9]
+
+
+// Variables
+var tmRoutes: Boolean Array = [] // How input channels route to output channels
+
+
+// Functions
+Function buildTMRoutes()
+    var level: Double
+    var outputChannel: Integer
+    var inputChannel: Integer
+    var routeIndex: Integer
+    var tmOutputIndex: Integer
+    var tmInputIndex: Integer
+
+    For routeIndex = 0; routeIndex < Size(channelRoutes); routeIndex = routeIndex + 1 Do
+        outputChannel = routeIndex / Size(inputChannels)
+        inputChannel = routeIndex % Size(inputChannels)
+
+        tmOutputIndex = tmOutputChannelIndices[outputChannel]
+        tmInputIndex = tmInputChannelIndices[inputChannel]
+
+        If channelRoutes[routeIndex] Then
+            level = 0.80742913 // 0dB
+        Else
+            level = 0.0
+        End
+
+        setChannelLevel(tmOutputIndex, tmInputIndex, tmChannelTypes[inputChannel], level)
+    End
+End
+
+
+// Initialize
+Initialization
+    var i, j: Integer
+    For i = 0; i < Size(tmOutputChannelIndices); i = i + 1 Do
+        For j = 0; j < Size(tmInputChannelIndices); j = j + 1 Do
+            tmRoutes <-- false
+        End
+    End
+    
+
+    updateBusRoutes()
+    updateBusInserts()
+    buildChannelRoutes()
+    buildTMRoutes()
+End
+
+
+
+// Callbacks
+On WidgetValueChanged (w : Widget, index : integer, value : double) from audio00, audio01, audio02, audio10, audio11, audio12, audio20, audio21, audio22, insert00, insert01, insert02, insert10, insert11, insert12
+    updateBusRoutes()
+    updateBusInserts()
+    buildChannelRoutes()
+    buildTMRoutes()
+End
