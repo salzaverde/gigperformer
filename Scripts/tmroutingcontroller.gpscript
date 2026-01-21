@@ -2,16 +2,22 @@ Include "routing"
 Include "tmosc"
 
 // Configuration
+
 // PlaybackChannels are used for virtual instruments
 // InputChannels are used for audio inputs
+// Check inputChannels in routing.gpscript for channel names
 var tmChannelTypes: Integer Array = [InputChannelType, InputChannelType, PlaybackChannelType, InputChannelType, InputChannelType]
 
 // Which TotalMix channel index the channels should be mapped to (indices can repeat if they are of different types)
 var tmInputChannelIndices: Integer Array = [5, 4, 1, 0, 1]
 
+// Check outputChannels in routing.gpscript for channel names
 // Outputchannels are set using setSubmix, where the value corresponds to single channels (e.g. first channel of stereo pair)
 var tmOutputChannelIndices: Integer Array = [1, 3, 5, 7, 9]
+var tmSummingChannelIndices: Integer Array = [1, 1, 1, 7, 9]
 
+// Widgets
+var sumBussesToStereoSwitch: Widget
 
 // Variables
 var tmRoutes: Boolean Array = [] // How input channels route to output channels
@@ -26,11 +32,18 @@ Function buildTMRoutes()
     var tmOutputIndex: Integer
     var tmInputIndex: Integer
 
+    var sumToStereo: Boolean = GetWidgetValue(sumBussesToStereoSwitch) > 0.5
+
     For routeIndex = 0; routeIndex < Size(channelRoutes); routeIndex = routeIndex + 1 Do
         outputChannel = routeIndex / Size(inputChannels)
         inputChannel = routeIndex % Size(inputChannels)
 
-        tmOutputIndex = tmOutputChannelIndices[outputChannel]
+        If sumToStereo Then
+            tmOutputIndex = tmSummingChannelIndices[outputChannel]
+        Else
+            tmOutputIndex = tmOutputChannelIndices[outputChannel]
+        End
+        
         tmInputIndex = tmInputChannelIndices[inputChannel]
 
         If channelRoutes[routeIndex] Then
@@ -43,6 +56,12 @@ Function buildTMRoutes()
     End
 End
 
+Function updateRouting () 
+    updateBusRoutes()
+    updateBusInserts()
+    buildChannelRoutes()
+    buildTMRoutes()
+End
 
 // Initialize
 Initialization
@@ -53,19 +72,20 @@ Initialization
         End
     End
     
-
-    updateBusRoutes()
-    updateBusInserts()
-    buildChannelRoutes()
-    buildTMRoutes()
+    updateRouting()
 End
 
 
-
 // Callbacks
-On WidgetValueChanged (w : Widget, index : integer, value : double) from audio00, audio01, audio02, audio10, audio11, audio12, audio20, audio21, audio22, insert00, insert01, insert02, insert10, insert11, insert12
-    updateBusRoutes()
-    updateBusInserts()
-    buildChannelRoutes()
-    buildTMRoutes()
+// This needs to be triggered from rackspace but rest should be global
+On WidgetValueChanged (w : Widget, index : integer, value : double) from audio00, audio01, audio02, audio10, audio11, audio12, audio20, audio21, audio22
+    updateRouting()
+End
+
+On WidgetValueChanged (w : Widget, index : integer, value : double) from insert00, insert01, insert02, insert10, insert11, insert12
+    updateRouting()
+End
+
+On WidgetValueChanged (value : double) from sumBussesToStereoSwitch
+    updateRouting()
 End
