@@ -24,6 +24,17 @@ var tmRoutes: Boolean Array = [] // How input channels route to output channels
 
 
 // Functions
+Function resetTMRoutes()
+    var i, j, inputChannelIndex, outputChannelIndex: Integer
+    For i = 0; i < Size(tmOutputChannelIndices); i = i + 1 Do
+        For j = 0; j < Size(tmInputChannelIndices); j = j + 1 Do
+            outputChannelIndex = tmOutputChannelIndices[i]
+            inputChannelIndex = tmInputChannelIndices[j]
+            setChannelLevel(outputChannelIndex, inputChannelIndex, tmChannelTypes[j], 0.0)
+        End
+    End
+End
+
 Function buildTMRoutes()
     var level: Double
     var outputChannel: Integer
@@ -33,6 +44,8 @@ Function buildTMRoutes()
     var tmInputIndex: Integer
 
     var sumToStereo: Boolean = GetWidgetValue(sumBussesToStereoSwitch) > 0.5
+
+    resetTMRoutes()
 
     For routeIndex = 0; routeIndex < Size(channelRoutes); routeIndex = routeIndex + 1 Do
         outputChannel = routeIndex / Size(inputChannels)
@@ -48,11 +61,8 @@ Function buildTMRoutes()
 
         If channelRoutes[routeIndex] Then
             level = 0.80742913 // 0dB
-        Else
-            level = 0.0
+            setChannelLevel(tmOutputIndex, tmInputIndex, tmChannelTypes[inputChannel], level)
         End
-
-        setChannelLevel(tmOutputIndex, tmInputIndex, tmChannelTypes[inputChannel], level)
     End
 End
 
