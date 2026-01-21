@@ -4,7 +4,6 @@ const PlaybackChannelType: Integer = 1
 // Variables
 var currentChannelType: Integer = InputChannelType
 
-// Functions
 Function setChannelType(channelType: Integer)
     If currentChannelType != channelType Then
         Select
@@ -19,12 +18,6 @@ End
 
 // API
 Function setChannelLevel(outputChannelIndex: Integer, inputChannelIndex: Integer, channelType: Integer, level: Double)
-    If level > 0.0 Then
-        Print("Routing inputChannelIndex " + inputChannelIndex + " to outputChannelIndex " + outputChannelIndex + " as type " + channelType)
-    Else
-        Print("Unrouting inputChannelIndex " + inputChannelIndex + " on outputChannelIndex " + outputChannelIndex + " as type " + channelType)
-    End
-
     OSC_SendDouble("/setSubmix", outputChannelIndex)
     setChannelType(channelType)
     OSC_SendDouble("/1/volume" + (inputChannelIndex + 1), level)

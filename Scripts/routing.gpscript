@@ -8,7 +8,7 @@ Include "utils"
 // Define input and output channels, adding insert channels at the end
 // Naturally, the number of insert outputs and inputs must be the same
 var inputChannels: String Array = ["Rev2", "Pro3", "Kontakt", "Delay In", "Reverb In"]
-var outputChannels: String Array = ["Bass Bus", "Sequence Bus", "Keys Bus", "Delay Out", "Reverb Out"]
+var outputChannels: String Array = ["Bass Bus", "Seq Bus", "Keys Bus", "Delay Out", "Reverb Out"]
 var insertInStartIndex: Integer = 3
 var insertOutStartIndex: Integer = 3
 

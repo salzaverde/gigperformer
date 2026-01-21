@@ -18,12 +18,36 @@ var tmSummingChannelIndices: Integer Array = [1, 1, 1, 7, 9]
 
 // Widgets
 var sumBussesToStereoSwitch: Widget
+var busLevel0, busLevel1, busLevel2: Widget
+var busLevelValue0, busLevelValue1, busLevelValue2: Widget
+var busLevelWidgets: Widget Array = [busLevel0, busLevel1, busLevel2]
+var busLevelValueWidgets: Widget Array = [busLevelValue0, busLevelValue1, busLevelValue2]
 
 // Variables
-var tmRoutes: Boolean Array = [] // How input channels route to output channels
+var tmActiveBusLevelWidgetIndices: Integer Array = [] // Level widgets for active buses
+var tmActiveRouteInputs: Integer Array = [] // Sequential inputs of active routes
+var tmActiveRouteOutputs: Integer Array = [] // Sequential outputs of active routes
+var tmActiveRouteTypes: Integer Array = [] // Type of each active route
 
+// State
+var tmCurrentLevels: Double Array = []
 
 // Functions
+Function toDb(level: Double) Returns String
+    var faderPos: Double
+    var dB: Double
+
+    faderPos = level * 1023.0
+
+    If faderPos >= 649.0 Then
+        dB = faderPos * 0.0320855615 - 26.8235294118
+    Else
+        dB = (faderPos * faderPos) * (-1.0/11033.0) + faderPos * 0.1497326203 - 65.0;
+    End
+
+    result = DoubleToString(dB, 1) + " dB"
+End
+
 Function resetTMRoutes()
     var i, j, inputChannelIndex, outputChannelIndex: Integer
     For i = 0; i < Size(tmOutputChannelIndices); i = i + 1 Do
@@ -36,7 +60,6 @@ Function resetTMRoutes()
 End
 
 Function buildTMRoutes()
-    var level: Double
     var outputChannel: Integer
     var inputChannel: Integer
     var routeIndex: Integer
@@ -45,7 +68,11 @@ Function buildTMRoutes()
 
     var sumToStereo: Boolean = GetWidgetValue(sumBussesToStereoSwitch) > 0.5
 
-    resetTMRoutes()
+    ClearArray(tmActiveBusLevelWidgetIndices)
+    ClearArray(tmActiveRouteInputs)
+    ClearArray(tmActiveRouteOutputs)
+    ClearArray(tmActiveRouteTypes)
+    ClearArray(tmCurrentLevels)
 
     For routeIndex = 0; routeIndex < Size(channelRoutes); routeIndex = routeIndex + 1 Do
         outputChannel = routeIndex / Size(inputChannels)
@@ -60,8 +87,51 @@ Function buildTMRoutes()
         tmInputIndex = tmInputChannelIndices[inputChannel]
 
         If channelRoutes[routeIndex] Then
-            level = 0.80742913 // 0dB
-            setChannelLevel(tmOutputIndex, tmInputIndex, tmChannelTypes[inputChannel], level)
+            If outputChannel < Size (busLevelWidgets) Then
+                tmActiveBusLevelWidgetIndices <-- outputChannel
+            Else
+                tmActiveBusLevelWidgetIndices <-- -1
+            End
+
+            tmActiveRouteInputs <-- tmInputIndex
+            tmActiveRouteOutputs <-- tmOutputIndex
+            tmActiveRouteTypes <-- tmChannelTypes[inputChannel]
+
+            tmCurrentLevels <-- 0.0
+        End
+    End
+End
+
+Function setLevels ()
+    var routeIndex: Integer
+    
+    var tmLevelWidgetIndex: Integer
+    var tmInputIndex: Integer
+    var tmOutputIndex: Integer
+    var tmInputType: Integer
+
+    var level: Double
+    var dB: String
+    var zeroDB: Double = 0.80742913
+
+    For routeIndex = 0; routeIndex < Size(tmActiveRouteInputs); routeIndex = routeIndex + 1 Do
+        tmLevelWidgetIndex = tmActiveBusLevelWidgetIndices[routeIndex]
+        tmInputIndex = tmActiveRouteInputs[routeIndex]
+        tmOutputIndex = tmActiveRouteOutputs[routeIndex]
+        tmInputType = tmActiveRouteTypes[routeIndex]
+        
+        If tmLevelWidgetIndex == -1 Then
+            level = zeroDB
+        Else
+            level = GetWidgetValue(busLevelWidgets[tmLevelWidgetIndex])
+        End
+
+        dB = toDb(level)
+        
+        If level != tmCurrentLevels[routeIndex] Then
+            setChannelLevel(tmOutputIndex, tmInputIndex, tmInputType, level)
+            tmCurrentLevels[routeIndex] = level
+            SetWidgetLabel(busLevelValueWidgets[tmLevelWidgetIndex], dB)
         End
     End
 End
@@ -70,21 +140,23 @@ Function updateRouting ()
     updateBusRoutes()
     updateBusInserts()
     buildChannelRoutes()
+
+    resetTMRoutes()
     buildTMRoutes()
+
+    setLevels()
 End
 
 // Initialize
 Initialization
-    var i, j: Integer
-    For i = 0; i < Size(tmOutputChannelIndices); i = i + 1 Do
-        For j = 0; j < Size(tmInputChannelIndices); j = j + 1 Do
-            tmRoutes <-- false
-        End
+    // Set widget labels
+    var i: Integer
+    For i = 0; i < Size(busLevelWidgets); i = i + 1 Do
+        SetWidgetLabel(busLevelWidgets[i], outputChannels[i])
     End
-    
+
     updateRouting()
 End
-
 
 // Callbacks
 // This needs to be triggered from rackspace but rest should be global
@@ -98,4 +170,8 @@ End
 
 On WidgetValueChanged (value : double) from sumBussesToStereoSwitch
     updateRouting()
+End
+
+On WidgetValueChanged (w : Widget, index : integer, value : double) from busLevel0, busLevel1, busLevel2
+    setLevels()
 End
