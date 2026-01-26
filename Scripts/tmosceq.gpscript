@@ -1,31 +1,66 @@
 Include "tmoscchanneltype"
 
-// Functions
-Function setChannel(type: Integer, index: Integer)
-    setChannelType(type)
-    OSC_SendDouble("/setOffsetInBank", index)
+// Variables
+var faderIndices: Integer Array = []
+
+// State
+var eqIndicesPending: Integer Array = []
+var eqsEnabled: Boolean Array = []
+
+//Functions
+Function updateEqEnabledState (eqIndex: Integer)
+    var faderIndex: integer
+
+    setChannelType(InputChannelType)
+            
+    eqIndicesPending <-- eqIndex
+    faderIndex = faderIndices[eqIndex]
+
+    // eqEnable is a toggle, actual value might be set in callback
+    OSC_SendDouble("/setOffsetInBank", faderIndex)
+    OSC_SendDouble("/2/eqEnable", 1.0)
 End
 
 // API
-Function setEQEnabled(channelIndex: Integer, enabled: Boolean)
-    OSC_SendDouble("/setBankStart", channelIndex)
-    If enabled Then
-        OSC_SendDouble("/2/eqEnable", 1.0)
-    Else
-        OSC_SendDouble("/2/eqEnable", 0.0)
+Function setEQEnabled(eqIndex: Integer, enabled: Boolean)
+    If eqIndex >= 0 And eqIndex < Size(faderIndices) Then
+        If eqsEnabled[eqIndex] != enabled Then
+            eqsEnabled[eqIndex] = enabled
+            updateEqEnabledState(eqIndex)
+        Else
+            Print("EQ index out of bounds: " + eqIndex)
+        End
     End
+End
+
+Function addEQ(faderIndex: Integer, enabled: Boolean)
+    faderIndices <-- faderIndex
+    eqsEnabled <-- enabled
+    updateEqEnabledState(Size(faderIndices) - 1)
 End
 
 // Initialization
 Initialization
     OSC_SendDouble("/setBankStart", 0.0)
-
-
-    // OSC_SendDouble("/2/eqEnable", 0.51)
-    // OSC_SendDouble("/2/eqFreq2", 0.8)
 End
 
 On OSCMessageReceived(message : OSCMessage) Matching "/2/eqEnable"
-   Print("EQ Enable Message Received")
-   Print("Value is: " + OSC_GetArgAsDouble(message, 0))
+    var enabled: Boolean
+    var eqIndexPending: Integer
+    var i: Integer
+    var remainingIndices: Integer Array
+
+    If Size(eqIndicesPending) > 0 Then
+        eqIndexPending = eqIndicesPending[0]
+        enabled = OSC_GetArgAsDouble(message, 0) > 0.5
+        If enabled != eqsEnabled[eqIndexPending] Then
+            OSC_SendDouble("/2/eqEnable", 1.0)
+        End
+    End
+
+    For i = 1; i < Size(eqIndicesPending) - 1; i = i + 1 Do
+        remainingIndices <-- eqIndicesPending[i]
+    End
+
+    eqIndicesPending = remainingIndices
 End

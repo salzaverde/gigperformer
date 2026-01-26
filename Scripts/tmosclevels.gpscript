@@ -1,4 +1,4 @@
-Inlude "tmoscchanneltype"
+Include "tmoscchanneltype"
 
 // API
 Function setChannelLevel(outputChannelIndex: Integer, inputChannelIndex: Integer, channelType: Integer, level: Double)
