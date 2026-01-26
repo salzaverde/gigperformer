@@ -48,6 +48,34 @@ Function setFrequency(eqIndex: Integer, bandIndex: Integer, frequency: Double)
     End
 End
 
+Function setGain(eqIndex: Integer, bandIndex: Integer, gain: Double)
+    var faderIndex: integer
+
+    If eqIndex >= 0 And eqIndex < Size(faderIndices) Then
+        faderIndex = faderIndices[eqIndex]
+        setChannelType(InputChannelType)
+
+        OSC_SendDouble("/setOffsetInBank", faderIndex)
+        OSC_SendDouble("/2/eqGain" + (bandIndex + 1), gain)
+    Else
+        Print("EQ index out of bounds: " + eqIndex)
+    End
+End
+
+Function setQ(eqIndex: Integer, bandIndex: Integer, gain: Double)
+    var faderIndex: integer
+
+    If eqIndex >= 0 And eqIndex < Size(faderIndices) Then
+        faderIndex = faderIndices[eqIndex]
+        setChannelType(InputChannelType)
+
+        OSC_SendDouble("/setOffsetInBank", faderIndex)
+        OSC_SendDouble("/2/eqQ" + (bandIndex + 1), gain)
+    Else
+        Print("EQ index out of bounds: " + eqIndex)
+    End
+End
+
 Function addEQ(faderIndex: Integer)
     faderIndices <-- faderIndex
     eqsEnabled <-- false

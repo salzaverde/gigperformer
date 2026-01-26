@@ -7,19 +7,51 @@ const pro3TMChannelIndex: Integer = 4
 // Widgets
 var eqEnable0, eqEnable1: Widget // Playback channels don't support EQ
 
-var f00, f01, f02: Widget
-var f00label, f01label, f02label: Widget
+var f00, f01, f02, f10, f11, f12: Widget
+var f00label, f01label, f02label, f10label, f11label, f12label: Widget
 
-var gain00, gain01, gain02: Widget
-var gain00label, gain01label, gain02label: Widget
+var gain00, gain01, gain02, gain10, gain11, gain12: Widget
+var gain00label, gain01label, gain02label, gain10label, gain11label, gain12label: Widget
 
-var q01, q02, q03: Widget
-var q01label, q02label, q03label: Widget
+var q00, q01, q02, q10, q11, q12: Widget
+var q00label, q01label, q02label, q10label, q11label, q12label: Widget
+
+var fControls: Widget Array = [f00, f01, f02, f10, f11, f12]
+var fLabels: Widget Array = [f00label, f01label, f02label, f10label, f11label, f12label]
+var gainControls: Widget Array = [gain00, gain01, gain02, gain10, gain11, gain12]
+var gainLabels: Widget Array = [gain00label, gain01label, gain02label, gain10label, gain11label, gain12label]
+var qControls: Widget Array = [q00, q01, q02, q10, q11, q12]
+var qLabels: Widget Array = [q00label, q01label, q02label, q10label, q11label, q12label]
 
 // Initialization
 Initialization
     addEQ(rev2TMChannelIndex) // Rev2
     addEQ(pro3TMChannelIndex) // Pro3
+End
+
+// Functions
+Function toFrequencyString(frequency: Double) Returns String
+    var hz: Double
+    hz = Exp(frequency * (Ln(20000.0) - Ln(20.0)) + Ln(20.0));
+    If hz < 1000.0 Then
+        result = DoubleToString(hz, 0) + " Hz"
+    Else
+        result = DoubleToString(hz / 1000.0, 1) + " kHz"
+    End
+End
+
+Function toGainString(gain: Double) Returns String
+    var gainDb: Double
+    gainDb = -20.0 + (gain * 40.0)
+    gainDb = Round(gainDb * 2.0) / 2.0
+    result = DoubleToString(gainDb, 1) + " dB"
+End
+
+Function toQString(q: Double) Returns String
+    var qValue: Double
+    // This is rounded to steps of 0.1
+    qValue = Round((0.4 + (q * 9.5)) * 10.0) / 10.0
+    result = DoubleToString(qValue, 1)
 End
 
 // Callbacks
@@ -29,30 +61,41 @@ On WidgetValueChanged (w : Widget, index : integer, value : double) from eqEnabl
     setEQEnabled(index, enabled)
 End
 
-On WidgetValueChanged (w : Widget, index : integer, value : double) from f00, f01, f02
+On WidgetValueChanged (w : Widget, index : integer, value : double) from f00, f01, f02, f10, f11, f12
+    var eqIndex: Integer
+    var bandIndex: Integer
     var value: Double
-    var hz: Double
-    var callout: String
 
+    eqIndex = toRowIndex(index, numBands)
+    bandIndex = toColumnIndex(index, numBands)
     value = GetWidgetValue(w)
-    If index == 0 Then
-        setFrequency(0, 0, value)
-        hz = Exp(value * (Ln(20000.0) - Ln(20.0)) + Ln(20.0));
-        If hz < 1000.0 Then
-            callout = DoubleToString(hz, 0) + " Hz"
-        Else
-            callout = DoubleToString(hz / 1000.0, 1) + " kHz"
-        End
-        SetWidgetLabel(f00label, callout)
-    End
+
+    setFrequency(eqIndex, bandIndex, value)
+    SetWidgetLabel(fLabels[index], toFrequencyString(value))
 End
 
-On WidgetValueChanged (w : Widget, index : integer, value : double) from gain00, gain01, gain02
+On WidgetValueChanged (w : Widget, index : integer, value : double) from gain00, gain01, gain02, gain10, gain11, gain12
+    var eqIndex: Integer
+    var bandIndex: Integer
     var value: Double
+
+    eqIndex = toRowIndex(index, numBands)
+    bandIndex = toColumnIndex(index, numBands)
     value = GetWidgetValue(w)
+
+    setGain(eqIndex, bandIndex, value)
+    SetWidgetLabel(gainLabels[index], toGainString(value))
 End
 
-On WidgetValueChanged (w : Widget, index : integer, value : double) from q01, q02, q03
+On WidgetValueChanged (w : Widget, index : integer, value : double) from q00, q01, q02, q10, q11, q12
+        var eqIndex: Integer
+    var bandIndex: Integer
     var value: Double
+
+    eqIndex = toRowIndex(index, numBands)
+    bandIndex = toColumnIndex(index, numBands)
     value = GetWidgetValue(w)
+
+    setQ(eqIndex, bandIndex, value)
+    SetWidgetLabel(qLabels[index], toQString(value))
 End
