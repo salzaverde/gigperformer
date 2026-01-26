@@ -1,26 +1,25 @@
 Include "tmosceq"
 
+// Variables
+const rev2TMChannelIndex: Integer = 5
+const pro3TMChannelIndex: Integer = 4
+
 // Widgets
 var eqEnable0, eqEnable1: Widget // Playback channels don't support EQ
+
 var f00, f01, f02: Widget
+var f00label, f01label, f02label: Widget
+
 var gain00, gain01, gain02: Widget
+var gain00label, gain01label, gain02label: Widget
+
 var q01, q02, q03: Widget
-
-// Variables
-const numBands: Integer = 3
-
-// TODO: Check if we can know if eq is enabled
-
-// Functions
-//TODO: include tmRoutingController to know inputChannelIndex, set frequency in tmosceq
-Function setFrequency(inputChannel: Integer, bandIndex: Integer, frequency: Double)
-    
-End
+var q01label, q02label, q03label: Widget
 
 // Initialization
 Initialization
-    addEQ(5, GetWidgetValue(eqEnable0) > 0.5) // Rev2
-    addEQ(4, GetWidgetValue(eqEnable1) > 0.5) // Pro3
+    addEQ(rev2TMChannelIndex) // Rev2
+    addEQ(pro3TMChannelIndex) // Pro3
 End
 
 // Callbacks
@@ -32,7 +31,20 @@ End
 
 On WidgetValueChanged (w : Widget, index : integer, value : double) from f00, f01, f02
     var value: Double
+    var hz: Double
+    var callout: String
+
     value = GetWidgetValue(w)
+    If index == 0 Then
+        setFrequency(0, 0, value)
+        hz = Exp(value * (Ln(20000.0) - Ln(20.0)) + Ln(20.0));
+        If hz < 1000.0 Then
+            callout = DoubleToString(hz, 0) + " Hz"
+        Else
+            callout = DoubleToString(hz / 1000.0, 1) + " kHz"
+        End
+        SetWidgetLabel(f00label, callout)
+    End
 End
 
 On WidgetValueChanged (w : Widget, index : integer, value : double) from gain00, gain01, gain02

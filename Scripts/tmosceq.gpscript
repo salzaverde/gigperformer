@@ -1,6 +1,7 @@
 Include "tmoscchanneltype"
 
 // Variables
+const numBands: Integer = 3
 var faderIndices: Integer Array = []
 
 // State
@@ -27,15 +28,29 @@ Function setEQEnabled(eqIndex: Integer, enabled: Boolean)
         If eqsEnabled[eqIndex] != enabled Then
             eqsEnabled[eqIndex] = enabled
             updateEqEnabledState(eqIndex)
-        Else
-            Print("EQ index out of bounds: " + eqIndex)
         End
+    Else
+        Print("EQ index out of bounds: " + eqIndex)
     End
 End
 
-Function addEQ(faderIndex: Integer, enabled: Boolean)
+Function setFrequency(eqIndex: Integer, bandIndex: Integer, frequency: Double)
+    var faderIndex: integer
+
+    If eqIndex >= 0 And eqIndex < Size(faderIndices) Then
+        faderIndex = faderIndices[eqIndex]
+        setChannelType(InputChannelType)
+
+        OSC_SendDouble("/setOffsetInBank", faderIndex)
+        OSC_SendDouble("/2/eqFreq" + (bandIndex + 1), frequency)
+    Else
+        Print("EQ index out of bounds: " + eqIndex)
+    End
+End
+
+Function addEQ(faderIndex: Integer)
     faderIndices <-- faderIndex
-    eqsEnabled <-- enabled
+    eqsEnabled <-- false
     updateEqEnabledState(Size(faderIndices) - 1)
 End
 
