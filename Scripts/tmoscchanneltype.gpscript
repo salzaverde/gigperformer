@@ -16,22 +16,12 @@ Function setChannelType(channelType: Integer)
     End
 End
 
-// API
-Function setChannelLevel(outputChannelIndex: Integer, inputChannelIndex: Integer, channelType: Integer, level: Double)
-    OSC_SendDouble("/setSubmix", outputChannelIndex)
-    setChannelType(channelType)
-    OSC_SendDouble("/1/volume" + (inputChannelIndex + 1), level)
-End
-
-Function setBusLevel(outputChannelIndex: Integer, level: Double)
-// TBD
-End
-
+// Initialization
 Initialization
     setChannelType(InputChannelType)
 End
 
-// Log Rx
+// Callbacks
 On OSCMessageReceived(message : OSCMessage) Matching "/1/busInput"
     If OSC_GetArgAsDouble(message, 0) == 1.0 Then
         currentChannelType = InputChannelType

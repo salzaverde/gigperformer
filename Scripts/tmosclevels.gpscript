@@ -1,0 +1,8 @@
+Inlude "tmoscchanneltype"
+
+// API
+Function setChannelLevel(outputChannelIndex: Integer, inputChannelIndex: Integer, channelType: Integer, level: Double)
+    OSC_SendDouble("/setSubmix", outputChannelIndex)
+    setChannelType(channelType)
+    OSC_SendDouble("/1/volume" + (inputChannelIndex + 1), level)
+End

@@ -1,0 +1,31 @@
+Include "tmoscchanneltype"
+
+// Functions
+Function setChannel(type: Integer, index: Integer)
+    setChannelType(type)
+    OSC_SendDouble("/setOffsetInBank", index)
+End
+
+// API
+Function setEQEnabled(channelIndex: Integer, enabled: Boolean)
+    OSC_SendDouble("/setBankStart", channelIndex)
+    If enabled Then
+        OSC_SendDouble("/2/eqEnable", 1.0)
+    Else
+        OSC_SendDouble("/2/eqEnable", 0.0)
+    End
+End
+
+// Initialization
+Initialization
+    OSC_SendDouble("/setBankStart", 0.0)
+
+
+    // OSC_SendDouble("/2/eqEnable", 0.51)
+    // OSC_SendDouble("/2/eqFreq2", 0.8)
+End
+
+On OSCMessageReceived(message : OSCMessage) Matching "/2/eqEnable"
+   Print("EQ Enable Message Received")
+   Print("Value is: " + OSC_GetArgAsDouble(message, 0))
+End

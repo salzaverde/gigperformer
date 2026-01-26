@@ -1,5 +1,5 @@
 Include "routing"
-Include "tmosc"
+Include "tmosclevels"
 
 // Configuration
 
@@ -159,7 +159,6 @@ Initialization
 End
 
 // Callbacks
-// This needs to be triggered from rackspace but rest should be global
 On WidgetValueChanged (w : Widget, index : integer, value : double) from audio00, audio01, audio02, audio10, audio11, audio12, audio20, audio21, audio22
     updateRouting()
 End

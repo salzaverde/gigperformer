@@ -1,0 +1,40 @@
+Include "tmosceq"
+
+// Widgets
+var enable0, enable1, enable2: Widget
+var f00, f01, f02: Widget
+var gain00, gain01, gain02: Widget
+var q01, q02, q03: Widget
+
+// Variables
+const numBands: Integer = 3
+
+// TODO: Check if we can know if eq is enabled
+
+// Functions
+//TODO: include tmRoutingController to know inputChannelIndex, set frequency in tmosceq
+Function setFrequency(inputChannel: Integer, bandIndex: Integer, frequency: Double)
+    
+End
+
+// Callbacks
+On WidgetValueChanged (w : Widget, index : integer, value : double) from enable0, enable1, enable2
+    var enabled: Boolean
+    enabled = GetWidgetValue(w) > 0.5
+    setEQEnabled(index, enabled)
+End
+
+On WidgetValueChanged (w : Widget, index : integer, value : double) from f00, f01, f02
+    var value: Double
+    value = GetWidgetValue(w)
+End
+
+On WidgetValueChanged (w : Widget, index : integer, value : double) from gain00, gain01, gain02
+    var value: Double
+    value = GetWidgetValue(w)
+End
+
+On WidgetValueChanged (w : Widget, index : integer, value : double) from q01, q02, q03
+    var value: Double
+    value = GetWidgetValue(w)
+End
