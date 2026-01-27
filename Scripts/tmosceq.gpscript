@@ -11,6 +11,8 @@ var faderIndices: Integer Array = []
 // State
 var eqIndicesPending: Integer Array = []
 var eqsEnabled: Boolean Array = []
+var hpIndicesPending: Integer Array = []
+var hpsEnabled: Boolean Array = []
 
 //Functions
 Function toBandTypeValue(bandIndex: Integer, bandType: String) Returns Double
@@ -47,12 +49,36 @@ Function updateEqEnabledState (eqIndex: Integer)
     OSC_SendDouble("/2/eqEnable", 1.0)
 End
 
+Function updateHpEnabledState (eqIndex: Integer)
+    var faderIndex: Integer
+
+    setChannelType(InputChannelType)
+            
+    hpIndicesPending <-- eqIndex
+    faderIndex = faderIndices[eqIndex]
+
+    // lowcutEnable is a toggle, actual value might be set in callback
+    OSC_SendDouble("/setOffsetInBank", faderIndex)
+    OSC_SendDouble("/2/lowcutEnable", 1.0)
+End
+
 // API
 Function setEQEnabled(eqIndex: Integer, enabled: Boolean)
     If eqIndex >= 0 And eqIndex < Size(faderIndices) Then
         If eqsEnabled[eqIndex] != enabled Then
             eqsEnabled[eqIndex] = enabled
             updateEqEnabledState(eqIndex)
+        End
+    Else
+        Print("EQ index out of bounds: " + eqIndex)
+    End
+End
+
+Function setHPEnabled(eqIndex: Integer, enabled: Boolean)
+    If eqIndex >= 0 And eqIndex < Size(faderIndices) Then
+        If hpsEnabled[eqIndex] != enabled Then
+            hpsEnabled[eqIndex] = enabled
+            updateHpEnabledState(eqIndex)
         End
     Else
         Print("EQ index out of bounds: " + eqIndex)
@@ -152,6 +178,7 @@ End
 Function addEQ(faderIndex: Integer)
     faderIndices <-- faderIndex
     eqsEnabled <-- false
+    hpsEnabled <-- false
     
     // Middle band does not support band type
     currentBandType <-- "Bell"
@@ -159,6 +186,7 @@ Function addEQ(faderIndex: Integer)
     currentBandType <-- "Bell"
 
     updateEqEnabledState(Size(faderIndices) - 1)
+    updateHpEnabledState(Size(faderIndices) - 1)
 End
 
 // Initialization
@@ -185,4 +213,25 @@ On OSCMessageReceived(message : OSCMessage) Matching "/2/eqEnable"
     End
 
     eqIndicesPending = remainingIndices
+End
+
+On OSCMessageReceived(message : OSCMessage) Matching "/2/lowcutEnable"
+    var enabled: Boolean
+    var hpIndexPending: Integer
+    var i: Integer
+    var remainingIndices: Integer Array
+
+    If Size(hpIndicesPending) > 0 Then
+        hpIndexPending = hpIndicesPending[0]
+        enabled = OSC_GetArgAsDouble(message, 0) > 0.5
+        If enabled != hpsEnabled[hpIndexPending] Then
+            OSC_SendDouble("/2/lowcutEnable", 1.0)
+        End
+    End
+
+    For i = 1; i < Size(hpIndicesPending) - 1; i = i + 1 Do
+        remainingIndices <-- hpIndicesPending[i]
+    End
+
+    hpIndicesPending = remainingIndices
 End

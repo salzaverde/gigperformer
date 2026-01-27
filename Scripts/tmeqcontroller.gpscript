@@ -6,6 +6,7 @@ const pro3TMChannelIndex: Integer = 4
 
 // Widgets
 var eqEnable0, eqEnable1: Widget // Playback channels don't support EQ
+var hpEnable0, hpEnable1: Widget
 
 var nextBandType00, nextBandType01, nextBandType10, nextBandType11: Widget
 var bandType00, bandType01, bandType10, bandType11: Widget
@@ -77,6 +78,12 @@ On WidgetValueChanged (w : Widget, index : integer, value : double) from eqEnabl
     var enabled: Boolean
     enabled = GetWidgetValue(w) > 0.5
     setEQEnabled(index, enabled)
+End
+
+On WidgetValueChanged (w : Widget, index : integer, value : double) from hpEnable0, hpEnable1
+    var enabled: Boolean
+    enabled = GetWidgetValue(w) > 0.5
+    setHPEnabled(index, enabled)
 End
 
 On WidgetValueChanged (w : Widget, index : integer, value : double) from f00, f01, f02, f10, f11, f12
