@@ -43,9 +43,10 @@ Initialization
     var eqIndex: Integer
     var bandIndex: Integer
     var bandType: String
+    var enabled: Boolean
 
-    addEQ(rev2TMChannelIndex) // Rev2
-    addEQ(pro3TMChannelIndex) // Pro3
+    addEQ(rev2TMChannelIndex, GetWidgetValue(eqEnable0) > 0.5, GetWidgetValue(hpEnable0) > 0.5) // Rev2
+    addEQ(pro3TMChannelIndex, GetWidgetValue(eqEnable1) > 0.5, GetWidgetValue(hpEnable1) > 0.5) // Pro3
 
     For i = 0; i < Size(bandTypeLabels); i = i + 1 Do
         eqIndex = toRowIndex(i, numTypeSelectableBands)
@@ -54,6 +55,8 @@ Initialization
 
         setBandType(eqIndex, bandIndex, bandType)
     End
+
+    initialize()
 End
 
 // Functions
@@ -83,15 +86,11 @@ End
 
 // Callbacks
 On WidgetValueChanged (w : Widget, index : integer, value : double) from eqEnable0, eqEnable1
-    var enabled: Boolean
-    enabled = GetWidgetValue(w) > 0.5
-    setEQEnabled(index, enabled)
+    setEQEnabled(index, GetWidgetValue(w) > 0.5)
 End
 
 On WidgetValueChanged (w : Widget, index : integer, value : double) from hpEnable0, hpEnable1
-    var enabled: Boolean
-    enabled = GetWidgetValue(w) > 0.5
-    setHPEnabled(index, enabled)
+    setHPEnabled(index, GetWidgetValue(w) > 0.5)
 End
 
 On WidgetValueChanged (w : Widget, index : integer, value : double) from fHp0, fHp1

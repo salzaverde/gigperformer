@@ -9,10 +9,12 @@ const numTypeSelectableBands: Integer = 2
 var faderIndices: Integer Array = []
 
 // State
-var eqIndicesPending: Integer Array = []
 var eqsEnabled: Boolean Array = []
-var hpIndicesPending: Integer Array = []
 var hpsEnabled: Boolean Array = []
+
+var eqUpdatesPending: Integer = 0
+var hpUpdatesPending: Integer = 0
+var updateEqIndex: Integer = -1
 
 //Functions
 Function toBandTypeValue(bandIndex: Integer, bandType: String) Returns Double
@@ -36,38 +38,29 @@ Function toBandTypeValue(bandIndex: Integer, bandType: String) Returns Double
     End
 End
 
-Function updateEqEnabledState (eqIndex: Integer)
-    var faderIndex: Integer
-
+Function updateToggleStates ()
     setChannelType(InputChannelType)
-            
-    eqIndicesPending <-- eqIndex
-    faderIndex = faderIndices[eqIndex]
+    
+    eqUpdatesPending = Size(faderIndices)
+    hpUpdatesPending = Size(faderIndices)
+    updateEqIndex = 0
 
-    // eqEnable is a toggle, actual value might be set in callback
-    OSC_SendDouble("/setOffsetInBank", faderIndex)
-    OSC_SendDouble("/2/eqEnable", 1.0)
-End
-
-Function updateHpEnabledState (eqIndex: Integer)
-    var faderIndex: Integer
-
-    setChannelType(InputChannelType)
-            
-    hpIndicesPending <-- eqIndex
-    faderIndex = faderIndices[eqIndex]
-
-    // lowcutEnable is a toggle, actual value might be set in callback
-    OSC_SendDouble("/setOffsetInBank", faderIndex)
-    OSC_SendDouble("/2/lowcutEnable", 1.0)
+    OSC_SendDouble("/setOffsetInBank", faderIndices[0])
 End
 
 // API
 Function setEQEnabled(eqIndex: Integer, enabled: Boolean)
+    var faderIndex: Integer
+
     If eqIndex >= 0 And eqIndex < Size(faderIndices) Then
         If eqsEnabled[eqIndex] != enabled Then
+            faderIndex = faderIndices[eqIndex]
+            
+            setChannelType(InputChannelType)
+            OSC_SendDouble("/setOffsetInBank", faderIndex)
+            OSC_SendDouble("/2/eqEnable", 1.0)
+
             eqsEnabled[eqIndex] = enabled
-            updateEqEnabledState(eqIndex)
         End
     Else
         Print("EQ index out of bounds: " + eqIndex)
@@ -75,10 +68,16 @@ Function setEQEnabled(eqIndex: Integer, enabled: Boolean)
 End
 
 Function setHPEnabled(eqIndex: Integer, enabled: Boolean)
+    var faderIndex: Integer
     If eqIndex >= 0 And eqIndex < Size(faderIndices) Then
         If hpsEnabled[eqIndex] != enabled Then
+            faderIndex = faderIndices[eqIndex]
+            
+            setChannelType(InputChannelType)
+            OSC_SendDouble("/setOffsetInBank", faderIndex)
+            OSC_SendDouble("/2/lowcutEnable", 1.0)
+
             hpsEnabled[eqIndex] = enabled
-            updateHpEnabledState(eqIndex)
         End
     Else
         Print("EQ index out of bounds: " + eqIndex)
@@ -86,7 +85,7 @@ Function setHPEnabled(eqIndex: Integer, enabled: Boolean)
 End
 
 Function setHPDBPerOctave(eqIndex: Integer, dbPerOctave: Integer)
-    var faderIndex: integer
+    var faderIndex: Integer
     var value: Double
 
     If eqIndex >= 0 And eqIndex < Size(faderIndices) Then
@@ -215,63 +214,53 @@ Function nextBandType(eqIndex: Integer, bandIndex: Integer) Returns String
     End
 End
 
-Function addEQ(faderIndex: Integer)
+Function addEQ(faderIndex: Integer, eqEnabled: Boolean, hpEnabled: Boolean)
     faderIndices <-- faderIndex
-    eqsEnabled <-- false
-    hpsEnabled <-- false
+    eqsEnabled <-- eqEnabled
+    hpsEnabled <-- hpEnabled
     
     // Middle band does not support band type
     currentBandType <-- "Bell"
     currentBandType <-- ""
     currentBandType <-- "Bell"
-
-    updateEqEnabledState(Size(faderIndices) - 1)
-    updateHpEnabledState(Size(faderIndices) - 1)
 End
 
-// Initialization
-Initialization
+Function processNextUpdate()
+    If eqUpdatesPending > 0 And eqUpdatesPending == hpUpdatesPending Then
+        updateEqIndex = Size(faderIndices) - eqUpdatesPending
+
+        OSC_SendDouble("/setOffsetInBank", faderIndices[updateEqIndex])
+    End
+End
+
+Function initialize()
     OSC_SendDouble("/setBankStart", 0.0)
+    updateToggleStates()
 End
 
 On OSCMessageReceived(message : OSCMessage) Matching "/2/eqEnable"
     var enabled: Boolean
-    var eqIndexPending: Integer
-    var i: Integer
-    var remainingIndices: Integer Array
-
-    If Size(eqIndicesPending) > 0 Then
-        eqIndexPending = eqIndicesPending[0]
+    
+    If eqUpdatesPending > 0 Then
         enabled = OSC_GetArgAsDouble(message, 0) > 0.5
-        If enabled != eqsEnabled[eqIndexPending] Then
+        If eqsEnabled[updateEqIndex] != enabled Then
             OSC_SendDouble("/2/eqEnable", 1.0)
         End
+        eqUpdatesPending = eqUpdatesPending - 1
+        processNextUpdate()
     End
-
-    For i = 1; i < Size(eqIndicesPending) - 1; i = i + 1 Do
-        remainingIndices <-- eqIndicesPending[i]
-    End
-
-    eqIndicesPending = remainingIndices
 End
 
 On OSCMessageReceived(message : OSCMessage) Matching "/2/lowcutEnable"
     var enabled: Boolean
-    var hpIndexPending: Integer
-    var i: Integer
-    var remainingIndices: Integer Array
-
-    If Size(hpIndicesPending) > 0 Then
-        hpIndexPending = hpIndicesPending[0]
+    
+    If eqUpdatesPending > 0 Then
         enabled = OSC_GetArgAsDouble(message, 0) > 0.5
-        If enabled != hpsEnabled[hpIndexPending] Then
+        If hpsEnabled[updateEqIndex] != enabled Then
             OSC_SendDouble("/2/lowcutEnable", 1.0)
         End
-    End
+        hpUpdatesPending = hpUpdatesPending - 1
 
-    For i = 1; i < Size(hpIndicesPending) - 1; i = i + 1 Do
-        remainingIndices <-- hpIndicesPending[i]
+        processNextUpdate()
     End
-
-    hpIndicesPending = remainingIndices
 End
