@@ -85,6 +85,46 @@ Function setHPEnabled(eqIndex: Integer, enabled: Boolean)
     End
 End
 
+Function setHPDBPerOctave(eqIndex: Integer, dbPerOctave: Integer)
+    var faderIndex: integer
+    var value: Double
+
+    If eqIndex >= 0 And eqIndex < Size(faderIndices) Then
+        faderIndex = faderIndices[eqIndex]
+        setChannelType(InputChannelType)
+
+        Select
+            dbPerOctave == 6 Do
+                value = 0.0
+            dbPerOctave == 12 Do
+                value = 0.333
+            dbPerOctave == 18 Do
+                value = 0.666
+            dbPerOctave == 24 Do
+                value = 1.0
+        End
+
+        OSC_SendDouble("/setOffsetInBank", faderIndex)
+        OSC_SendDouble("/2/lowcutGrade", value)
+    Else
+        Print("EQ index out of bounds: " + eqIndex)
+    End
+End
+
+Function setHPFrequency(eqIndex: Integer, frequency: Double)
+    var faderIndex: integer
+
+    If eqIndex >= 0 And eqIndex < Size(faderIndices) Then
+        faderIndex = faderIndices[eqIndex]
+        setChannelType(InputChannelType)
+
+        OSC_SendDouble("/setOffsetInBank", faderIndex)
+        OSC_SendDouble("/2/lowcutFreq", frequency)
+    Else
+        Print("EQ index out of bounds: " + eqIndex)
+    End
+End
+
 Function setFrequency(eqIndex: Integer, bandIndex: Integer, frequency: Double)
     var faderIndex: integer
 

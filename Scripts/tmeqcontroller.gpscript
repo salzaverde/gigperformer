@@ -8,6 +8,11 @@ const pro3TMChannelIndex: Integer = 4
 var eqEnable0, eqEnable1: Widget // Playback channels don't support EQ
 var hpEnable0, hpEnable1: Widget
 
+var gradeHp0, gradeHp1: Widget
+var gradeHp0Label, gradeHp1Label: Widget
+var fHp0, fHp1: Widget
+var fHp0Label, fHp1Label: Widget
+
 var nextBandType00, nextBandType01, nextBandType10, nextBandType11: Widget
 var bandType00, bandType01, bandType10, bandType11: Widget
 var bandTypeLabels: Widget Array = [bandType00, bandType01, bandType10, bandType11]
@@ -21,6 +26,10 @@ var gain00label, gain01label, gain02label, gain10label, gain11label, gain12label
 var q00, q01, q02, q10, q11, q12: Widget
 var q00label, q01label, q02label, q10label, q11label, q12label: Widget
 
+var gradeHpControls: Widget Array = [gradeHp0, gradeHp1]
+var gradeHpLabels: Widget Array = [gradeHp0Label, gradeHp1Label]
+var fHpControls: Widget Array = [fHp0, fHp1]
+var fHpLabels: Widget Array = [fHp0Label, fHp1Label]
 var fControls: Widget Array = [f00, f01, f02, f10, f11, f12]
 var fLabels: Widget Array = [f00label, f01label, f02label, f10label, f11label, f12label]
 var gainControls: Widget Array = [gain00, gain01, gain02, gain10, gain11, gain12]
@@ -43,15 +52,14 @@ Initialization
         bandIndex = toColumnIndex(i, numTypeSelectableBands) * 2 // Only first and last bands are type selectable
         bandType = GetWidgetLabel(bandTypeLabels[i])
 
-        Print("Initializing EQ " + eqIndex + " band " + bandIndex + " type " + bandType)
         setBandType(eqIndex, bandIndex, bandType)
     End
 End
 
 // Functions
-Function toFrequencyString(frequency: Double) Returns String
+Function toFrequencyString(frequency: Double, minimum: Double, maximum: Double) Returns String
     var hz: Double
-    hz = Exp(frequency * (Ln(20000.0) - Ln(20.0)) + Ln(20.0));
+    hz = Exp(frequency * (Ln(maximum) - Ln(minimum)) + Ln(minimum));
     If hz < 1000.0 Then
         result = DoubleToString(hz, 0) + " Hz"
     Else
@@ -86,6 +94,33 @@ On WidgetValueChanged (w : Widget, index : integer, value : double) from hpEnabl
     setHPEnabled(index, enabled)
 End
 
+On WidgetValueChanged (w : Widget, index : integer, value : double) from fHp0, fHp1
+    var eqIndex: Integer
+    var value: Double
+
+    eqIndex = index
+    value = GetWidgetValue(w)
+
+    setHPFrequency(eqIndex, value)
+    SetWidgetLabel(fHpLabels[index], toFrequencyString(value, 20.0, 500.0))
+End
+
+On WidgetValueChanged (w : Widget, index : integer, value : double) from gradeHp0, gradeHp1
+    var eqIndex: Integer
+    var value: Double
+    var denormalized: Double
+    var dBPerOctave: Integer
+
+    eqIndex = index
+
+    value = GetWidgetValue(w)
+    denormalized = 6.0 + value * 18.0
+    dBPerOctave = Round(denormalized / 6.0) * 6
+
+    setHPDBPerOctave(eqIndex, dBPerOctave)
+    SetWidgetLabel(gradeHpLabels[index], IntToString(dBPerOctave) + " dB/oct")
+End
+
 On WidgetValueChanged (w : Widget, index : integer, value : double) from f00, f01, f02, f10, f11, f12
     var eqIndex: Integer
     var bandIndex: Integer
@@ -96,7 +131,7 @@ On WidgetValueChanged (w : Widget, index : integer, value : double) from f00, f0
     value = GetWidgetValue(w)
 
     setFrequency(eqIndex, bandIndex, value)
-    SetWidgetLabel(fLabels[index], toFrequencyString(value))
+    SetWidgetLabel(fLabels[index], toFrequencyString(value, 20.0, 20000.0))
 End
 
 On WidgetValueChanged (w : Widget, index : integer, value : double) from gain00, gain01, gain02, gain10, gain11, gain12
