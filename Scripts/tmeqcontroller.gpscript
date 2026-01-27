@@ -7,6 +7,10 @@ const pro3TMChannelIndex: Integer = 4
 // Widgets
 var eqEnable0, eqEnable1: Widget // Playback channels don't support EQ
 
+var nextBandType00, nextBandType01, nextBandType10, nextBandType11: Widget
+var bandType00, bandType01, bandType10, bandType11: Widget
+var bandTypeLabels: Widget Array = [bandType00, bandType01, bandType10, bandType11]
+
 var f00, f01, f02, f10, f11, f12: Widget
 var f00label, f01label, f02label, f10label, f11label, f12label: Widget
 
@@ -25,8 +29,22 @@ var qLabels: Widget Array = [q00label, q01label, q02label, q10label, q11label, q
 
 // Initialization
 Initialization
+    var i: Integer
+    var eqIndex: Integer
+    var bandIndex: Integer
+    var bandType: String
+
     addEQ(rev2TMChannelIndex) // Rev2
     addEQ(pro3TMChannelIndex) // Pro3
+
+    For i = 0; i < Size(bandTypeLabels); i = i + 1 Do
+        eqIndex = toRowIndex(i, numTypeSelectableBands)
+        bandIndex = toColumnIndex(i, numTypeSelectableBands) * 2 // Only first and last bands are type selectable
+        bandType = GetWidgetLabel(bandTypeLabels[i])
+
+        Print("Initializing EQ " + eqIndex + " band " + bandIndex + " type " + bandType)
+        setBandType(eqIndex, bandIndex, bandType)
+    End
 End
 
 // Functions
@@ -98,4 +116,18 @@ On WidgetValueChanged (w : Widget, index : integer, value : double) from q00, q0
 
     setQ(eqIndex, bandIndex, value)
     SetWidgetLabel(qLabels[index], toQString(value))
+End
+
+On WidgetValueChanged (w : Widget, index : integer, value : double) from nextBandType00, nextBandType01, nextBandType10, nextBandType11
+    var eqIndex: Integer
+    var bandIndex: Integer
+    var newType: String
+
+    If value == 0.0 Then
+        eqIndex = toRowIndex(index, numTypeSelectableBands)
+        bandIndex = toColumnIndex(index, numTypeSelectableBands) * 2 // Only first and last bands are type selectable
+
+        newType = nextBandType(eqIndex, bandIndex)
+        SetWidgetLabel(bandTypeLabels[index], newType)
+    End
 End

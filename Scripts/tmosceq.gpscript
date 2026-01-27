@@ -1,7 +1,11 @@
 Include "tmoscchanneltype"
 
 // Variables
+var bandTypes: String Array = ["Bell", "Shelf", "HP", "LP"]
+var currentBandType: String Array = []
+
 const numBands: Integer = 3
+const numTypeSelectableBands: Integer = 2
 var faderIndices: Integer Array = []
 
 // State
@@ -9,8 +13,29 @@ var eqIndicesPending: Integer Array = []
 var eqsEnabled: Boolean Array = []
 
 //Functions
+Function toBandTypeValue(bandIndex: Integer, bandType: String) Returns Double
+    Select
+        bandType == "Bell" Do
+            result = 0.0
+        bandType == "Shelf" Do
+            result = 0.333
+        bandType == "HP" Do
+            If bandIndex == 0 Then
+                result = 0.666
+            Else
+                result = 1.0
+            End
+        bandType == "LP" Do
+            If bandIndex == 0 Then
+                result = 1.0
+            Else
+                result = 0.666
+            End
+    End
+End
+
 Function updateEqEnabledState (eqIndex: Integer)
-    var faderIndex: integer
+    var faderIndex: Integer
 
     setChannelType(InputChannelType)
             
@@ -63,7 +88,7 @@ Function setGain(eqIndex: Integer, bandIndex: Integer, gain: Double)
 End
 
 Function setQ(eqIndex: Integer, bandIndex: Integer, gain: Double)
-    var faderIndex: integer
+    var faderIndex: Integer
 
     If eqIndex >= 0 And eqIndex < Size(faderIndices) Then
         faderIndex = faderIndices[eqIndex]
@@ -76,9 +101,63 @@ Function setQ(eqIndex: Integer, bandIndex: Integer, gain: Double)
     End
 End
 
+Function getBandType(eqIndex: Integer, bandIndex: Integer) Returns String
+    var bandTypeIndex: Integer
+
+    If eqIndex >= 0 And eqIndex < Size(faderIndices) Then
+        bandTypeIndex = toMapIndex(eqIndex, bandIndex, numBands)
+        result = currentBandType[bandTypeIndex]
+    Else
+        Print("EQ index out of bounds: " + eqIndex)
+        result = "Unknown"
+    End
+End
+
+Function setBandType(eqIndex: Integer, bandIndex: Integer, bandType: String)
+    var faderIndex: Integer
+    var bandTypeIndex: Integer
+    var bandTypeValue: Double
+
+    If eqIndex >= 0 And eqIndex < Size(faderIndices) Then
+        faderIndex = faderIndices[eqIndex]
+        bandTypeIndex = toMapIndex(eqIndex, bandIndex, numBands)
+        currentBandType[bandTypeIndex] = bandType
+
+        setChannelType(InputChannelType)
+
+        OSC_SendDouble("/setOffsetInBank", faderIndex)
+        OSC_SendDouble("/2/eqType" + (bandIndex + 1), toBandTypeValue(bandIndex, bandType))
+    Else
+        Print("EQ index out of bounds: " + eqIndex)
+    End
+End
+
+Function nextBandType(eqIndex: Integer, bandIndex: Integer) Returns String
+    var bandTypeIndex: Integer
+    var currentType: String
+    var nextIndex: Integer
+
+    result = "Unknown"
+
+    currentType = getBandType(eqIndex, bandIndex)
+    For bandTypeIndex = 0; bandTypeIndex < Size(bandTypes); bandTypeIndex = bandTypeIndex + 1 Do
+        If bandTypes[bandTypeIndex] == currentType Then
+            nextIndex = (bandTypeIndex + 1) % Size(bandTypes)
+            setBandType(eqIndex, bandIndex, bandTypes[nextIndex])
+            result = bandTypes[nextIndex]
+        End
+    End
+End
+
 Function addEQ(faderIndex: Integer)
     faderIndices <-- faderIndex
     eqsEnabled <-- false
+    
+    // Middle band does not support band type
+    currentBandType <-- "Bell"
+    currentBandType <-- ""
+    currentBandType <-- "Bell"
+
     updateEqEnabledState(Size(faderIndices) - 1)
 End
 
