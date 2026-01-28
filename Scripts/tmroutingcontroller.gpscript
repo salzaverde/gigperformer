@@ -131,7 +131,10 @@ Function setLevels ()
         If level != tmCurrentLevels[routeIndex] Then
             setChannelLevel(tmOutputIndex, tmInputIndex, tmInputType, level)
             tmCurrentLevels[routeIndex] = level
-            SetWidgetLabel(busLevelValueWidgets[tmLevelWidgetIndex], dB)
+
+            If tmLevelWidgetIndex != -1 Then
+                SetWidgetLabel(busLevelValueWidgets[tmLevelWidgetIndex], dB)
+            End
         End
     End
 End
