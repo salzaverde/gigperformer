@@ -1,8 +1,9 @@
 Include "tmosceq"
+Include "tmroutingcontroller"
 
 // Variables
-const rev2TMChannelIndex: Integer = 5
-const pro3TMChannelIndex: Integer = 4
+var rev2TMChannelIndex: Integer
+var pro3TMChannelIndex: Integer
 
 // Widgets
 var eqEnable0, eqEnable1: Widget // Playback channels don't support EQ
@@ -44,6 +45,9 @@ Initialization
     var bandIndex: Integer
     var bandType: String
     var enabled: Boolean
+
+    rev2TMChannelIndex = tmInputChannelIndices[0]
+    pro3TMChannelIndex = tmInputChannelIndices[1]
 
     addEQ(rev2TMChannelIndex, GetWidgetValue(eqEnable0) > 0.5, GetWidgetValue(hpEnable0) > 0.5) // Rev2
     addEQ(pro3TMChannelIndex, GetWidgetValue(eqEnable1) > 0.5, GetWidgetValue(hpEnable1) > 0.5) // Pro3

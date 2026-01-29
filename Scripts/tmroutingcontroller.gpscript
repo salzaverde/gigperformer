@@ -9,12 +9,12 @@ Include "tmosclevels"
 var tmChannelTypes: Integer Array = [InputChannelType, InputChannelType, PlaybackChannelType, InputChannelType, InputChannelType]
 
 // Which TotalMix channel index the channels should be mapped to (indices can repeat if they are of different types)
-var tmInputChannelIndices: Integer Array = [5, 4, 1, 0, 1]
+var tmInputChannelIndices: Integer Array = [0, 4, 1, 2, 1]
 
 // Check outputChannels in routing.gpscript for channel names
 // Outputchannels are set using setSubmix, where the value corresponds to single channels (e.g. first channel of stereo pair)
-var tmOutputChannelIndices: Integer Array = [1, 3, 5, 7, 9]
-var tmSummingChannelIndices: Integer Array = [1, 1, 1, 7, 9]
+var tmOutputChannelIndices: Integer Array = [3, 5, 1, 9, 7]
+var tmSummingChannelIndices: Integer Array = [1, 1, 1, 9, 7]
 
 // Widgets
 var sumBussesToStereoSwitch: Widget
