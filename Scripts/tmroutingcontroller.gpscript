@@ -18,6 +18,7 @@ var tmSummingChannelIndices: Integer Array = [1, 1, 1, 9, 7]
 
 // Widgets
 var sumBussesToStereoSwitch: Widget
+var dimSwitch: Widget
 var busLevel0, busLevel1, busLevel2: Widget
 var busLevelValue0, busLevelValue1, busLevelValue2: Widget
 var busLevelWidgets: Widget Array = [busLevel0, busLevel1, busLevel2]
@@ -33,19 +34,37 @@ var tmActiveRouteTypes: Integer Array = [] // Type of each active route
 var tmCurrentLevels: Double Array = []
 
 // Functions
-Function toDb(level: Double) Returns String
+Function toDb(level: Double) Returns Double
     var faderPos: Double
-    var dB: Double
-
     faderPos = level * 1023.0
 
     If faderPos >= 649.0 Then
-        dB = faderPos * 0.0320855615 - 26.8235294118
+        result = faderPos * 0.0320855615 - 26.8235294118
     Else
-        dB = (faderPos * faderPos) * (-1.0/11033.0) + faderPos * 0.1497326203 - 65.0;
+        result = (faderPos * faderPos) * (-1.0/11033.0) + faderPos * 0.1497326203 - 65.0;
+    End
+End
+
+Function dBToString(dB: Double) Returns String
+    result = DoubleToString(dB, 1) + " dB"
+End
+
+Function toLevel(dB: Double) Returns Double
+    var level: Double
+
+    If dB >= -6.0 Then
+        level = ((dB + 26.8235294118) * (1.0 / 0.0320855615)) / 1023.0
+    Else
+        level = (826.0 - Sqrt(-34869.0 - 11033.0 * dB)) / 1023.0
     End
 
-    result = DoubleToString(dB, 1) + " dB"
+    If level > 1.0 Then
+        result = 1.0
+    Elsif level < 0.0 Then
+        result = 0.0
+    Else
+        result = level
+    End
 End
 
 Function resetTMRoutes()
@@ -111,8 +130,11 @@ Function setLevels ()
     var tmInputType: Integer
 
     var level: Double
-    var dB: String
+    var dB: Double
     var zeroDB: Double = 0.80742913
+
+    var dim: Boolean
+    dim = GetWidgetValue(dimSwitch) > 0.5
 
     For routeIndex = 0; routeIndex < Size(tmActiveRouteInputs); routeIndex = routeIndex + 1 Do
         tmLevelWidgetIndex = tmActiveBusLevelWidgetIndices[routeIndex]
@@ -127,13 +149,17 @@ Function setLevels ()
         End
 
         dB = toDb(level)
+        If dim Then
+            dB = dB - 15.0
+            level = toLevel(dB)
+        End
         
         If level != tmCurrentLevels[routeIndex] Then
             setChannelLevel(tmOutputIndex, tmInputIndex, tmInputType, level)
             tmCurrentLevels[routeIndex] = level
 
             If tmLevelWidgetIndex != -1 Then
-                SetWidgetLabel(busLevelValueWidgets[tmLevelWidgetIndex], dB)
+                SetWidgetLabel(busLevelValueWidgets[tmLevelWidgetIndex], dBToString(dB))
             End
         End
     End
@@ -172,6 +198,10 @@ End
 
 On WidgetValueChanged (value : double) from sumBussesToStereoSwitch
     updateRouting()
+End
+
+On WidgetValueChanged (value : double) from dimSwitch
+    setLevels()
 End
 
 On WidgetValueChanged (w : Widget, index : integer, value : double) from busLevel0, busLevel1, busLevel2
