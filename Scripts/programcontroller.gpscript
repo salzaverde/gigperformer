@@ -3,36 +3,22 @@ const bankCC: Integer = 32
 var bank: Subrange Parameter 1..128 = 1
 var program: Subrange Parameter 1..128 = 1
 
-var processingCC: Boolean = false
-
 On ParameterValueChanged Matching bank
     var message: ControlChangeMessage
-
-    If !processingCC Then
-        message = MakeControlChangeMessage(bankCC, bank - 1) 
-        SendNow(message)
-    Else
-        processingCC = false
-    End
+    message = MakeControlChangeMessage(bankCC, bank - 1) 
+    SendNow(message)
 End
 
 On ParameterValueChanged Matching program
     var message: ProgramChangeMessage
-
-    If !processingCC Then
-        message = MakeProgramChangeMessage(program - 1) 
-        SendNow(message)
-    Else
-        processingCC = false
-    End
+    message = MakeProgramChangeMessage(program - 1) 
+    SendNow(message)
 End
 
 On ProgramChangeEvent(m : ProgramChangeMessage)
-    processingCC = true
     program = GetProgramChangeNumber(m) + 1
 End
 
 On ControlChangeEvent(m : ControlChangeMessage) Matching bankCC
-    processingCC = true
     bank = GetCCValue(m) + 1
 End
