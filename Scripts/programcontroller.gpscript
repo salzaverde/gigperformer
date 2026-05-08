@@ -2,23 +2,28 @@ const bankCC: Integer = 32
 
 var bank: Subrange Parameter 1..128 = 1
 var program: Subrange Parameter 1..128 = 1
+var channel: Subrange Parameter 1..16 = 1
 
 On ParameterValueChanged Matching bank
     var message: ControlChangeMessage
-    message = MakeControlChangeMessage(bankCC, bank - 1) 
+    message = MakeControlChangeMessageEx(bankCC, bank - 1, channel) 
     SendNow(message)
 End
 
 On ParameterValueChanged Matching program
     var message: ProgramChangeMessage
-    message = MakeProgramChangeMessage(program - 1) 
+    message = MakeProgramChangeMessageEx(program - 1, channel) 
     SendNow(message)
 End
 
 On ProgramChangeEvent(m : ProgramChangeMessage)
-    program = GetProgramChangeNumber(m) + 1
+    If GetChannel(m) == channel Then
+        program = GetProgramChangeNumber(m) + 1
+    End
 End
 
 On ControlChangeEvent(m : ControlChangeMessage) Matching bankCC
-    bank = GetCCValue(m) + 1
+    If GetChannel(m) == channel Then
+        bank = GetCCValue(m) + 1
+    End
 End

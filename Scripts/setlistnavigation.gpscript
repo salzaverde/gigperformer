@@ -25,12 +25,20 @@ End
 
 // Functions
 Function handleNext()
-    SongMoveDown()
+    If InSetlistMode() Then
+        SongMoveDown()
+    Else
+        NextVariation()
+    End
     nextHandled = true
 End
 
 Function handlePrevious()
-    SongMoveUp()
+    If InSetlistMode() Then
+        SongMoveUp()
+    Else
+        PreviousVariation()
+    End
     previousHandled = true
 End
 
@@ -76,10 +84,8 @@ Function reset()
     lastScrollTime = 0
 End
 
-// Logic
-On ControlChangeEvent(m : ControlChangeMessage) Matching controlCC
-    var value: Integer = GetCCValue(m)
-    Select
+Function processMidiValue(value: Integer)
+     Select
         value > upperThreshold Do
             setNextPressed(true)
         value < lowerThreshold Do
@@ -99,6 +105,18 @@ On ControlChangeEvent(m : ControlChangeMessage) Matching controlCC
             nextHandled = false
             previousHandled = false
     End
+End
+
+// Controllers
+On ControlChangeEvent(m : ControlChangeMessage) Matching controlCC
+    var value: Integer = GetCCValue(m)
+    processMidiValue(value)
+End
+
+// For testing
+On PitchBendEvent(m : PitchBendMessage)
+    var value: Integer = GetPitchBendValue(m) / 128
+    processMidiValue(value)
 End
 
 On TimerTick(milliseconds : double)
