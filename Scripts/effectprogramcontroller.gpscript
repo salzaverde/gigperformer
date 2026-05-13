@@ -1,0 +1,21 @@
+var program: Subrange Parameter 1..128 = 1
+var channel: Subrange Parameter 1..16 = 1
+var sendProgramChange: Discrete Parameter "Off", "On" = "Off"
+
+Function sendProgramChangeMessage()
+    var message: ProgramChangeMessage
+    message = MakeProgramChangeMessageEx(program - 1, channel) 
+    SendNow(message)
+End
+
+On ParameterValueChanged Matching program
+    If sendProgramChange == "On" Then
+        sendProgramChangeMessage()
+    End
+End
+
+On ParameterValueChanged Matching sendProgramChange
+    If sendProgramChange == "On" Then
+        sendProgramChangeMessage()
+    End
+End
